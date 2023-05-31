@@ -1,11 +1,11 @@
 # Architecture Overview
 
-![image](doc/images/architecture1.png)
+![image](images/architecture1.png)
 
 The flow for 'Sending opportunity data to ACE' is as follows:
 
 - Partner to generate own CRM Export (Excel/csv)
-- Copy data into 'Source' tab of the mapped [Excel Template](ace_import_tmpl.xlsx)
+- Copy data into 'Source' tab of the mapped [Excel Template](https://github.com/aws-samples/aws-partner-custom-crm-connector/raw/main/ace_import_tmpl.xlsx)
 - Validate 'Target' Tab
 - Send Email to ACE Integration Endpoint with filled excel file attached
 - Approve Import (Email Notification)
@@ -13,11 +13,11 @@ The flow for 'Sending opportunity data to ACE' is as follows:
 
 State Machine - Orchestrator (AWS Step Function)
 
-![image](doc/images/architecture2.png)
+![image](images/architecture2.png)
 
 State Machine - Import (AWS Step Function)
 
-![image](doc/images/architecture3.png) 
+![image](images/architecture3.png) 
 
 ## How to develop
 
