@@ -39,8 +39,7 @@ class Config:
                 self.stage = value.replace('"', "")
             elif key == "WorkflowNotificationEmail":
                 self.email = value.replace('"', "")
-            else:
-                raise ValueError(f"Unknown parameter: {key}")
+            
 
         for step_function in sfn.list_state_machines()["stateMachines"]:
             if step_function["name"] == f"AIF-Partner-to-AWS-Orchestrate-{self.stage}":
