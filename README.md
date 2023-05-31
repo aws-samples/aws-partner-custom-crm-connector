@@ -1,4 +1,4 @@
-# AWS Partner Custom CRM Connector
+# AWS Partner Custom CRM Connector [![Integration Test](https://github.com/aws-samples/aws-partner-custom-crm-connector/actions/workflows/python-app.yml/badge.svg)](https://github.com/aws-samples/aws-partner-custom-crm-connector/actions/workflows/python-app.yml)
 
 This solution provides an alternative to the official [AWS Partner CRM Connector for Salesforce](https://aws.amazon.com/blogs/apn/accelerate-joint-opportunity-and-lead-sharing-introducing-aws-partner-crm-connector/), simplfiying the AWS ACE CRM Integration for APN partners regardless of the CRM vendor, following a no-code approach.
 
