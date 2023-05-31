@@ -14,18 +14,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.x'
-    - name: Install dependencies
+    - name: SAM Publish
+      env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          STACK_NAME: ${{ vars.STACK_NAME }}
+          S3_BUCKET: ${{ vars.S3_BUCKET }}
+          S3_PREFIX: ${{ vars.S3_PREFIX }}
+          PARAMETER_OVERRIDES: ${{ vars.PARAMETER_OVERRIDES }}
       run: |
-        python -m pip install --upgrade pip
-        pip install build
-    - name: Build package
-      run: python -m build
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+        CURRENTVERSION = $(<VERSION)
+        sam package --template template.yaml --output-template-file packaged.yaml --resolve-s3 
+        sam publish --template packaged.yaml --region us-west-2 --semantic-version ${CURRENTVERSION}	
