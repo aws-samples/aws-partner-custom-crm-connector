@@ -49,7 +49,6 @@ jobs:
             sam deploy --template-file .aws-sam/build/template.yaml \
               --stack-name ${{ vars.STACK_NAME }} \
               --s3-bucket ${{ vars.S3_BUCKET }} \
-              --resolve-s3 \
               --parameter-overrides '${{ vars.PARAMETER_OVERRIDES }}' \
               --capabilities CAPABILITY_NAMED_IAM
 
