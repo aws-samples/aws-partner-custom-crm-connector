@@ -1,0 +1,103 @@
+{
+    "Comment": "ACE Integration: Partner CRM to AWS (Import)",
+    "StartAt": "Type of Update",
+    "States": {
+        "Type of Update": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.leads",
+                    "IsPresent": true,
+                    "Comment": "Is Lead?",
+                    "Next": "LeadNotImplemented"
+                },
+                {
+                    "Variable": "$.opportunities",
+                    "IsPresent": true,
+                    "Next": "Transformation Opportunity",
+                    "Comment": "Is Opportunity?"
+                }
+            ],
+            "Default": "UnknownUpdateType"
+        },
+        "UnknownUpdateType": {
+            "Type": "Fail",
+            "Error": "UnknownUpdateType",
+            "Cause": "Type is not Lead or Opportunity",
+            "Comment": "UnknownUpdateType"
+        },
+        "LeadNotImplemented": {
+            "Type": "Fail",
+            "Error": "LeadNotImplemented",
+            "Comment": "LeadNotImplemented",
+            "Cause": "Lead Flow is not Implemented"
+        },
+        "Transformation Opportunity": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "OutputPath": "$.Payload",
+            "Parameters": {
+                "Payload.$": "$",
+                "FunctionName": "${OpportunityTransformationFunction}"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 6,
+                    "BackoffRate": 2
+                }
+            ],
+            "Next": "PutObject"
+        },
+        "PutObject": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+                "FunctionName": "${S3PutObjectFunction}",
+                "Payload": {
+                    "Body.$": "$",
+                    "Bucket": "${AceApnPartnerBucket}",
+                    "Key.$": "States.Format('opportunity-inbound/{}.json', $$.Execution.Name)",
+                    "ACL": "bucket-owner-full-control",
+                    "RoleArn": "${AcePartnerIamAccessRole}"
+                }
+            },
+            "Next": "Get ACE Status"
+        },
+        "Get ACE Status": {
+            "Type": "Task",
+            "Parameters": {
+                "Bucket": "${AceApnPartnerBucket}",
+                "Key.$": "States.Format('opportunity-inbound-processed-results/{}_result.json', $$.Execution.Name)"
+            },
+            "Credentials": {
+                "RoleArn": "${AcePartnerIamAccessRole}"
+            },
+            "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
+            "ResultSelector": {
+                "opportunityStatus.$": "States.StringToJson($.Body)"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "S3.NoSuchKeyException"
+                    ],
+                    "BackoffRate": 1.5,
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 30
+                }
+            ],
+            "OutputPath": "$.opportunityStatus.inboundApiResults[0]",
+            "Next": "Success"
+        },
+        "Success": {
+            "Type": "Succeed"
+        }
+    }
+}

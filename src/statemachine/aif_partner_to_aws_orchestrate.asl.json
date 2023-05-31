@@ -1,0 +1,162 @@
+{
+  "Comment": "ACE Integration: Partner CRM to AWS (Orchestrate)",
+  "StartAt": "Approve or Reject",
+  "States": {
+    "Approve or Reject": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+      "Parameters": {
+        "FunctionName": "${ManualApprovalFunction}",
+        "Payload": {
+          "ExecutionContext.$": "$$"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "TimeoutSeconds": 600,
+      "ResultPath": null,
+      "Next": "Process Attachment"
+    },
+    "Process Attachment": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ProcessIncomingAttachmentsFunction}",
+        "Payload.$": "$"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "SNS Failure Excel"
+        }
+      ],
+      "TimeoutSeconds": 10,
+      "Next": "Trigger Import per Object",
+      "ResultPath": "$.AttachementContent",
+      "ResultSelector": {
+        "Payload.$": "$.Payload"
+      }
+    },
+    "Trigger Import per Object": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
+        },
+        "StartAt": "ACE Import Flow",
+        "States": {
+          "ACE Import Flow": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::states:startExecution.sync:2",
+            "Parameters": {
+              "StateMachineArn": "${AIFPartnerToAWSStateMachine}",
+              "Input.$": "$",
+              "Name.$": "States.Format('{}-{}', $$.Execution.Name, $.name)"
+            },
+            "End": true,
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "States.ALL"
+                ],
+                "BackoffRate": 1,
+                "IntervalSeconds": 2,
+                "MaxAttempts": 3
+              }
+            ]
+          }
+        }
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "SNS Failure ACE Process"
+        }
+      ],
+      "Next": "Analyse Results",
+      "ItemsPath": "$.AttachementContent.Payload"
+    },
+    "Analyse Results": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${AnalyseResultFunction}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "SNS Success",
+      "OutputPath": "$.Payload"
+    },
+    "SNS Success": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "Message.$": "$.message",
+        "Subject.$": "$.subject",
+        "TopicArn": "${AceNotificationSNSTopic}"
+      },
+      "Next": "Import successful",
+      "ResultPath": "$.snsSuccessResult",
+      "OutputPath": "$.result"
+    },
+    "Import successful": {
+      "Type": "Succeed"
+    },
+    "SNS Failure Excel": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "Message": "Excel could not be processed by ACE Integration! Import aborted!",
+        "Subject": "ACE Opportunity import failed!",
+        "TopicArn": "${AceNotificationSNSTopic}"
+      },
+      "Next": "Import aborted"
+    },
+    "Import aborted": {
+      "Type": "Fail",
+      "Cause": "Excel could not be processed by ACE Integration! Import aborted!"
+    },
+    "SNS Failure ACE Process": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "Message": "Error in the ACE integration interface. \n Please try again, if the error persists Report the error to the Github project",
+        "Subject": "ACE Opportunity import partially failed!",
+        "TopicArn": "${AceNotificationSNSTopic}"
+      },
+      "Next": "ACE Integration Failed"
+    },
+    "ACE Integration Failed": {
+      "Type": "Fail",
+      "Cause": "Error in the ACE integration interface.  Please try again, if the error persists Report the error to the Github project",
+      "Error": "AceIntegration"
+    }
+  }
+}

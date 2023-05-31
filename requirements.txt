@@ -1,0 +1,8 @@
+pytest==6.2.5
+autopep8
+boto3
+aws-lambda-powertools
+boto3-stubs[essential]
+toml
+aws_xray_sdk
+openpyxl

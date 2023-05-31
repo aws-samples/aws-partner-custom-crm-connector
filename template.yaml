@@ -1,0 +1,488 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  The CRM Connector allows AWS Partners in the APN Customer Engagements (ACE) program to share opportunities from their own CRM.
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: aws-partner-custom-crm-connector
+    Description: The CRM Connector allows AWS Partners in the APN Customer Engagements (ACE) program to share opportunities from their own CRM.
+    Author: AWS Partner Solutions Architects EMEA
+    SpdxLicenseId: MIT-0
+    ReadmeUrl: README.md
+    LicenseUrl: LICENSE
+    Labels: ["APN", "ACE", "CRM", "PartnerCentral", "Partner"]
+    HomePageUrl: https://github.com/aws-samples/aws-partner-custom-crm-connector
+    SemanticVersion: 0.0.1
+    SourceCodeUrl: https://github.com/aws-samples/aws-partner-custom-crm-connector/tree/v0.0.1
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Tracing: Active
+    Runtime: python3.9
+    Layers:
+      # Find the latest Layer version in the official documentation
+      # https://awslabs.github.io/aws-lambda-powertools-python/latest/#lambda-layer
+      - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPython:21
+  Api:
+    TracingEnabled: True
+
+Parameters:
+  PartnerIdParameter:
+    Type: Number
+    Description: Your Partner ID (SPMS ID) can be found https://partnercentral.awspartner.com/scorecardredirect
+
+  StageParameter:
+    Type: String
+    AllowedValues:
+      - alpha
+      - beta
+      - prod
+    Default: beta
+    Description: Choose environment Dev/Test (beta) or Production (prod)
+  ValidateSendereMail:
+    Type: String
+    AllowedValues:
+      - "True"
+      - "False"
+    Default: "True"
+    Description: Validated Inbound eMails agains the WorkFlowNotification Email
+
+  WorkflowNotificationEmail:
+    Type: String
+    Description: eMail address to be notified on error and for import approval
+
+  ACEKmsEncryptionArn:
+    Type: String
+    Description: The ACE Team will provide a specific KMS Key Arn per Stage after whitelisting
+    Default: arn:aws:kms:us-west-2:*:key/*
+
+Resources:
+  PartnerIntegrationBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "ace-partner-integration-${PartnerIdParameter}-${StageParameter}-${AWS::Region}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  AceNotificationSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: "AWS ACE Integration"
+
+  AceNotificationEmail:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !Ref WorkflowNotificationEmail
+      Protocol: email
+      TopicArn: !Ref "AceNotificationSNSTopic"
+
+  NewEmailAttachmentExtractorFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Properties:
+      Description: Partner to ACE - (1) Extract email attachment, trigger (2) Step Function 'Orchestrate'
+      CodeUri: src/functions/01_new_email_attachment_extractor
+      Handler: app.lambda_handler
+      EventInvokeConfig:
+        MaximumRetryAttempts: 0
+      Timeout: 10
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: NewEmailAttachmentExtractorFunction
+          UPLOAD_DIRECTORY: "incoming-attachments"
+          UPLOAD_BUCKET: !Sub "ace-partner-integration-${PartnerIdParameter}-${StageParameter}-${AWS::Region}"
+          STEP_FUNCTION_ARN: !GetAtt AIFPartnerToAWSStateMachineOrchestrate.Arn
+          IS_VALIDATE_EMAIL_ACTIVE: !Ref ValidateSendereMail
+          VALID_EMAIL_ADDRESS: !Ref WorkflowNotificationEmail
+          SNS_TOPIC_ARN: !Ref AceNotificationSNSTopic
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Sub "ace-partner-integration-${PartnerIdParameter}-${StageParameter}-${AWS::Region}"
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt AIFPartnerToAWSStateMachineOrchestrate.Name
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt AceNotificationSNSTopic.TopicName
+      Events:
+        S3Event:
+          Type: S3
+          Properties:
+            Bucket: !Ref PartnerIntegrationBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix # or "suffix"
+                    Value: incoming-email/ # The value to search for in the S3 object key names
+
+  ManualApprovalFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Properties:
+      Description: Partner to ACE - (3) Approve import
+      CodeUri: src/functions/02_manual_approval_import/
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Timeout: 15
+      Environment:
+        Variables:
+          ApiGatewayURL: !Sub "https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${ApiGatewayStage}"
+          TopicArn: !Ref "AceNotificationSNSTopic"
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt AceNotificationSNSTopic.TopicName
+    DependsOn:
+      - ApiGatewayDeployment
+
+  ProcessIncomingAttachmentsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Properties:
+      Description: Partner to ACE - (4) Process incoming attachments
+      CodeUri: src/functions/03_process_incoming_attachments/
+      Timeout: 10
+      EventInvokeConfig:
+        MaximumRetryAttempts: 0
+      Handler: app.lambda_handler
+      Layers:
+        - !Sub arn:aws:lambda:${AWS::Region}:336392948345:layer:AWSSDKPandas-Python39:2
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: ProcessIncomingAttachmentsFunction
+          PARTNER_ID: !Ref PartnerIdParameter
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Sub "ace-partner-integration-${PartnerIdParameter}-${StageParameter}-${AWS::Region}"
+  OpportunityTransformationFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Properties:
+      Description: Partner to ACE - (5) Custom Transformation (Optional)
+      CodeUri: src/functions/05_opportunity_transformation/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: OpportunityTransformationFunction
+
+  S3PutObjectFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Properties:
+      Description: Partner to ACE - (6) Trigger ACE Import via S3
+      CodeUri: src/functions/06_s3_put_object
+      Handler: app.lambda_handler
+      Timeout: 10
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: S3PutObjectFunction
+  AnalyseResultFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Properties:
+      Description: Partner to ACE - (7) Analyse Result of Imports
+      CodeUri: src/functions/07_analyse_results
+      Handler: app.lambda_handler
+      Timeout: 10
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: AnalyseResultFunction
+  AIFPartnerToAWSStateMachine:
+    Type: AWS::Serverless::StateMachine # More info about State Machine Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-statemachine.html
+    Properties:
+      Name: !Sub "AIF-Partner-to-AWS-${StageParameter}"
+      DefinitionUri: src/statemachine/aif_partner_to_aws.asl.json
+      Tracing:
+        Enabled: true
+      DefinitionSubstitutions:
+        OpportunityTransformationFunction: !GetAtt OpportunityTransformationFunction.Arn
+        AceNotificationSNSTopic: !Ref AceNotificationSNSTopic
+        AceApnPartnerBucket: !Sub "ace-apn-${PartnerIdParameter}-${StageParameter}-us-west-2"
+        S3PutObjectFunction: !GetAtt S3PutObjectFunction.Arn
+        AcePartnerIamAccessRole: !Sub "arn:aws:iam::${AWS::AccountId}:role/APN-ACE-${PartnerIdParameter}-AccessUser-${StageParameter}"
+      Policies: # Find out more about SAM policy templates: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+        - LambdaInvokePolicy:
+            FunctionName: !Ref OpportunityTransformationFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref S3PutObjectFunction
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt AceNotificationSNSTopic.TopicName
+
+  AIFPartnerToAWSStateMachineOrchestrate:
+    Type: AWS::Serverless::StateMachine # More info about State Machine Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-statemachine.html
+    Properties:
+      Name: !Sub "AIF-Partner-to-AWS-Orchestrate-${StageParameter}"
+      DefinitionUri: src/statemachine/aif_partner_to_aws_orchestrate.asl.json
+      Tracing:
+        Enabled: true
+      DefinitionSubstitutions:
+        ProcessIncomingAttachmentsFunction: !GetAtt ProcessIncomingAttachmentsFunction.Arn
+        ManualApprovalFunction: !GetAtt ManualApprovalFunction.Arn
+        AceNotificationSNSTopic: !Ref AceNotificationSNSTopic
+        AnalyseResultFunction: !GetAtt AnalyseResultFunction.Arn
+        AIFPartnerToAWSStateMachine: !GetAtt AIFPartnerToAWSStateMachine.Arn
+      Policies: # Find out more about SAM policy templates: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ProcessIncomingAttachmentsFunction
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt AIFPartnerToAWSStateMachine.Name
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ManualApprovalFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AnalyseResultFunction
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt AceNotificationSNSTopic.TopicName
+        - Statement:
+            - Sid: CloudWatchEventsPolicy #https://stackoverflow.com/questions/60612853/nested-step-function-in-a-step-function-unknown-error-not-authorized-to-cr
+              Effect: Allow
+              Action:
+                - events:PutTargets
+                - events:DescribeRule
+                - events:PutRule
+              Resource:
+                - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
+
+  ################################################################################################################################################################################################
+  ################################################################################################################################################################################################
+  ######### Inbound eMail Resources  #############################################################################################################################################################
+  ################################################################################################################################################################################################
+
+  AIFSESReceipt:
+    Type: "AWS::SES::ReceiptRuleSet"
+
+  AIFSESReceiptS3:
+    Type: AWS::SES::ReceiptRule
+    Properties:
+      RuleSetName: !Ref AIFSESReceipt
+      Rule:
+        Actions:
+          - S3Action:
+              BucketName: !Ref PartnerIntegrationBucket
+              ObjectKeyPrefix: incoming-email/
+        Enabled: true
+        ScanEnabled: true
+        TlsPolicy: Require
+    DependsOn: 
+    - AIFSESBucketPartnerIntegrationPolicy
+
+  AIFSESBucketPartnerIntegrationPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PartnerIntegrationBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action: s3:PutObject
+            Effect: Allow
+            Resource: !Sub "arn:aws:s3:::${PartnerIntegrationBucket}/*"
+            Principal:
+              Service: "ses.amazonaws.com"
+            Condition:
+              StringLike:
+                "aws:Referer": !Ref "AWS::AccountId"
+  ################################################################################################################################################################################################
+  ################################################################################################################################################################################################
+  ######### API Gateway for manual approval ######################################################################################################################################################
+  ################################################################################################################################################################################################
+  ManualApprovalAPIGatewayIAMRole:
+    Type: AWS::IAM::Role # Docs https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html
+    Properties:
+      RoleName: !Sub "APN-ACE-${PartnerIdParameter}-ManualApproval-${StageParameter}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "apigateway.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: SendTask
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:SendTaskFailure
+                Resource:
+                  - !Sub "arn:aws:states:*:*:stateMachine:AIF-Partner-to-AWS-Orchestrate-${StageParameter}"
+              - Effect: Allow
+                Action:
+                  - states:SendTaskSuccess
+                Resource:
+                  - !Sub "arn:aws:states:*:*:stateMachine:AIF-Partner-to-AWS-Orchestrate-${StageParameter}"
+
+  ApiGatewayRestApi:
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Name: "APN-ACE-Integration-Manual-Approval"
+      ApiKeySourceType: "HEADER"
+      EndpointConfiguration:
+        Types:
+          - "REGIONAL"
+
+  ApiGatewayStage:
+    Type: "AWS::ApiGateway::Stage"
+    Properties:
+      StageName: "prod"
+      DeploymentId: !Ref ApiGatewayDeployment
+      RestApiId: !Ref ApiGatewayRestApi
+      CacheClusterEnabled: false
+      CacheClusterSize: "0.5"
+      MethodSettings:
+        - CacheDataEncrypted: false
+          CacheTtlInSeconds: 300
+          CachingEnabled: false
+          DataTraceEnabled: false
+          HttpMethod: "*"
+          MetricsEnabled: false
+          ResourcePath: "/*"
+          ThrottlingBurstLimit: 5000
+          ThrottlingRateLimit: 10000
+      TracingEnabled: false
+
+  ApiGatewayResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      PathPart: "approve"
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+
+  ApiGatewayResource2:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      PathPart: "reject"
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+
+  ApiGatewayMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref ApiGatewayResource
+      HttpMethod: "GET"
+      AuthorizationType: "NONE"
+      ApiKeyRequired: false
+      RequestParameters:
+        "method.request.querystring.taskToken": false
+      MethodResponses:
+        - ResponseModels:
+            "application/json": "Empty"
+          StatusCode: "200"
+      Integration:
+        CacheNamespace: !Ref ApiGatewayResource
+        Credentials: !GetAtt ManualApprovalAPIGatewayIAMRole.Arn
+        IntegrationHttpMethod: "POST"
+        IntegrationResponses:
+          - ResponseTemplates: {}
+            StatusCode: "200"
+        PassthroughBehavior: "WHEN_NO_TEMPLATES"
+        RequestTemplates:
+          "application/json": |
+            {
+              "output": "\"Approve link was clicked.\"",
+              "taskToken": "$input.params('taskToken')"
+            }
+        TimeoutInMillis: 29000
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:states:action/SendTaskSuccess"
+
+  ApiGatewayMethod2:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref ApiGatewayResource2
+      HttpMethod: "GET"
+      AuthorizationType: "NONE"
+      ApiKeyRequired: false
+      RequestParameters:
+        "method.request.querystring.taskToken": false
+      MethodResponses:
+        - ResponseModels:
+            "application/json": "Empty"
+          StatusCode: "200"
+      Integration:
+        CacheNamespace: !Ref ApiGatewayResource2
+        Credentials: !GetAtt ManualApprovalAPIGatewayIAMRole.Arn
+        IntegrationHttpMethod: "POST"
+        IntegrationResponses:
+          - ResponseTemplates: {}
+            StatusCode: "200"
+        PassthroughBehavior: "WHEN_NO_TEMPLATES"
+        RequestTemplates:
+          "application/json": |
+            {
+                "cause": "Reject link was clicked.",
+                "error": "Rejected",
+                "taskToken": "$input.params('taskToken')"
+            }
+        TimeoutInMillis: 29000
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:states:action/SendTaskFailure"
+
+  ApiGatewayDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+    DependsOn:
+      - ApiGatewayMethod
+      - ApiGatewayMethod2
+
+  ################################################################################################################################################################################################
+  ################################################################################################################################################################################################
+  ######### Required Role for ACE Cross-Account Access  #############################################################################################################################################################
+  ################################################################################################################################################################################################
+  AceRequiredIAMRole:
+    Type: AWS::IAM::Role # Docs https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html
+    Properties:
+      RoleName: !Sub "APN-ACE-${PartnerIdParameter}-AccessUser-${StageParameter}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              # Dynamic Role based on Resource
+              AWS:
+                - !GetAtt AIFPartnerToAWSStateMachineRole.Arn
+                - !GetAtt S3PutObjectFunctionRole.Arn
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: ReadAceBucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListObjects
+                  - s3:PutObjectAcl
+                  - s3:DeleteObjectTagging
+                  - s3:DeleteObject
+                  - s3:GetObjectTagging
+                  - s3:PutObjectTagging
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:s3:::ace-apn-${PartnerIdParameter}-${StageParameter}-us-west-2/*"
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:s3:::ace-apn-${PartnerIdParameter}-${StageParameter}-us-west-2"
+        - PolicyName: GrantKMSAccessForAceBucket
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:Encrypt
+                  - kms:Decrypt
+                  - kms:ReEncrypt*
+                  - kms:GenerateDataKey*
+                  - kms:DescribeKey
+                Resource: !Ref ACEKmsEncryptionArn
+Outputs:
+  ApiGatewayURL:
+    Description: API URL for Manual Approval
+    Value: !Sub "https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${ApiGatewayStage}"
