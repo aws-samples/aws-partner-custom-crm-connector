@@ -31,7 +31,7 @@ Further deployment
 sam deploy
 ```
 
-Run Unit test(s)
+Run test(s)
 ```bash
 pip install pytest pytest-mock --user
 python -m pytest tests/ -v
