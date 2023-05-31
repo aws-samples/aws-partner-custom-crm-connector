@@ -18,7 +18,7 @@ Architecture Overview
 The flow for 'Sending opportunity data to ACE' is as follows:
 
 - Partner to generate own CRM Export (Excel/csv)
-- Copy data into 'Source' tab of the mapped [Excel Template](ace_import_tmpl.xlsx)
+- Copy data into 'Source' tab of the mapped [Excel Template](https://github.com/aws-samples/aws-partner-custom-crm-connector/raw/main/ace_import_tmpl.xlsx)
 - Validate 'Target' Tab
 - Send Email to ACE Integration Endpoint with filled excel file attached
 - Approve Import (Email Notification)
@@ -57,7 +57,7 @@ chmod +x update.sh
 To be performed for 'beta' and 'prod' individually!
 
 1. Generate a sample opportunity export from your own CRM
-2. Download this [Excel Template](ace_import_tmpl.xlsx), import your CRM data into tab 'Source' and **map the mandatory fields** as well as **opportunity stage** attributes:
+2. Download this [Excel Template](https://github.com/aws-samples/aws-partner-custom-crm-connector/raw/main/ace_import_tmpl.xlsx), import your CRM data into tab 'Source' and **map the mandatory fields** as well as **opportunity stage** attributes:
     - Customer Name
     - Opportunity Title
     - Opportunity Description (min 50. char.)
