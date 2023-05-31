@@ -15,13 +15,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - uses: aws-actions/setup-sam@v1
+    - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
     - name: SAM Publish
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: |
-        CURRENTVERSION = $(<VERSION)
+        CURRENTVERSION=$(<VERSION)
         sam package --template template.yaml --output-template-file packaged.yaml --resolve-s3 
         sam publish --template packaged.yaml --region us-west-2 --semantic-version ${CURRENTVERSION}	
