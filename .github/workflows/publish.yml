@@ -16,13 +16,9 @@ jobs:
     - uses: actions/checkout@v3
     - name: SAM Publish
       env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          STACK_NAME: ${{ vars.STACK_NAME }}
-          S3_BUCKET: ${{ vars.S3_BUCKET }}
-          S3_PREFIX: ${{ vars.S3_PREFIX }}
-          PARAMETER_OVERRIDES: ${{ vars.PARAMETER_OVERRIDES }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: |
         CURRENTVERSION = $(<VERSION)
         sam package --template template.yaml --output-template-file packaged.yaml --resolve-s3 
