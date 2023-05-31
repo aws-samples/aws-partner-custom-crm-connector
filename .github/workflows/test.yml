@@ -37,16 +37,18 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-2
         role-session-name: GithubActions
+    - name: SAM Validate
+      run: |
+        sam validate
+    - name: SAM Build
+      run: |
+        sam build
+        
   deploy:
     runs-on: ubuntu-latest
     needs: build
     steps:
-    - name: SAM Validate
-      run: |
-          sam validate
-    - name: SAM Build
-      run: |
-          sam build
+    
     - name: SAM Deploy
       run: | 
         # Run SAM Deploy
