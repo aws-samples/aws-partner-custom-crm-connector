@@ -12,7 +12,7 @@ Metadata:
     LicenseUrl: LICENSE
     Labels: ["APN", "ACE", "CRM", "PartnerCentral", "Partner"]
     HomePageUrl: https://github.com/aws-samples/aws-partner-custom-crm-connector
-    SemanticVersion: 0.0.1
+    SemanticVersion: 1.0
     SourceCodeUrl: https://github.com/aws-samples/aws-partner-custom-crm-connector/tree/v0.0.1
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
@@ -375,7 +375,8 @@ Resources:
         Credentials: !GetAtt ManualApprovalAPIGatewayIAMRole.Arn
         IntegrationHttpMethod: "POST"
         IntegrationResponses:
-          - ResponseTemplates: {}
+          - ResponseTemplates:
+              "text/html": "Import job approved - Summary will be send soon."
             StatusCode: "200"
         PassthroughBehavior: "WHEN_NO_TEMPLATES"
         RequestTemplates:
@@ -407,7 +408,8 @@ Resources:
         Credentials: !GetAtt ManualApprovalAPIGatewayIAMRole.Arn
         IntegrationHttpMethod: "POST"
         IntegrationResponses:
-          - ResponseTemplates: {}
+          - ResponseTemplates:
+              "text/html": "Import job declined - Nothing is left to do"
             StatusCode: "200"
         PassthroughBehavior: "WHEN_NO_TEMPLATES"
         RequestTemplates:

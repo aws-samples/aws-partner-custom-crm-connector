@@ -93,8 +93,7 @@ Especially as there are 4000 state transitions included every month as part of t
 
 ## Changelog
 
-1.00 
-Initial Release
+1.0 Initial Release (June 2023)
 
 ## Found an issue? Anything to add?
 
