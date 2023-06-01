@@ -47,7 +47,7 @@ Make sure to subscribe to updates, by clicking on 'Watch'. If you already have d
 - Execute the following statements - creates ChangeSet but keeps parameters **unchanged**, except password:
 
 ```bash
-wget https://github.com/aws-samples/aws-partner-custom-crm-connector/raw/master/update.sh
+wget https://github.com/aws-samples/aws-partner-custom-crm-connector/raw/main/update.sh
 chmod +x update.sh
 ./update.sh
 ```
