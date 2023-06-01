@@ -1,0 +1,62 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Integration Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+
+
+jobs:
+  build-deploy-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+  
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+          role-session-name: GithubActions
+      - name: SAM Validate
+        run: |
+          sam validate
+      - name: SAM Build
+        run: |
+          sam build
+ 
+      - name: SAM Deploy
+        run: | 
+          # Run SAM Deploy
+            sam deploy --template-file .aws-sam/build/template.yaml \
+              --stack-name ${{ vars.STACK_NAME }} \
+              --s3-bucket ${{ vars.S3_BUCKET }} \
+              --parameter-overrides '${{ vars.PARAMETER_OVERRIDES }}' \
+              --capabilities CAPABILITY_NAMED_IAM
+
+      - name: Test with pytest
+        env:
+          STACK_NAME: ${{ vars.STACK_NAME }}
+          S3_BUCKET: ${{ vars.S3_BUCKET }}
+          S3_PREFIX: ${{ vars.S3_PREFIX }}
+          PARAMETER_OVERRIDES: ${{ vars.PARAMETER_OVERRIDES }}
+        run: |
+          pytest --junitxml=report.xml 
