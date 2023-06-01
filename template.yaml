@@ -12,8 +12,8 @@ Metadata:
     LicenseUrl: LICENSE
     Labels: ["APN", "ACE", "CRM", "PartnerCentral", "Partner"]
     HomePageUrl: https://github.com/aws-samples/aws-partner-custom-crm-connector
-    SemanticVersion: 1.0
-    SourceCodeUrl: https://github.com/aws-samples/aws-partner-custom-crm-connector/tree/v0.0.1
+    SemanticVersion: 1.0.0
+    SourceCodeUrl: https://github.com/aws-samples/aws-partner-custom-crm-connector
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
