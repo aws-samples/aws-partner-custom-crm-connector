@@ -22,4 +22,5 @@ sleep 30
 echo 'Deploy...'
 aws cloudformation execute-change-set --change-set-name $changeARN
 aws cloudformation describe-stacks --stack-name serverlessrepo-aws-partner-custom-crm-connector --query 'Stacks[*].Tags'
-echo 'All done! Check AWS CloudFormation console for any errors!'
+echo 'Done!'
+echo 'Check AWS CloudFormation console for progress and/or any errors!'
