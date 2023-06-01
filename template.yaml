@@ -39,7 +39,7 @@ Parameters:
       - beta
       - prod
     Default: beta
-    Description: Choose environment Dev/Test (beta) or Production (prod)
+    Description: Classify environment, either 'beta' (Dev/Test) or 'prod' (Production)
   ValidateSendereMail:
     Type: String
     AllowedValues:
