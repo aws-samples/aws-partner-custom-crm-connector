@@ -23,5 +23,6 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: |
         CURRENTVERSION=$(<VERSION)
+        echo $CURRENTVERSION
         sam package --template template.yaml --output-template-file packaged.yaml --resolve-s3 
         sam publish --template packaged.yaml --region us-west-2 --semantic-version ${CURRENTVERSION}	
