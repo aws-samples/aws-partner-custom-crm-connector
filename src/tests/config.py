@@ -1,12 +1,16 @@
-import toml
+"""
+Provides Configuration.
+"""
+
 import os
 import boto3
+import toml
 
 sfn = boto3.client("stepfunctions")
 cloudformation = boto3.resource("cloudformation")
 
-
 class Config:
+    """Config is providing the base configuration for the AWS Custom CRM Connector"""
     spmid: int
     stage: str
     email: str
@@ -18,8 +22,8 @@ class Config:
 
     def __init__(self) -> None:
         if os.path.exists("samconfig.toml"):
-            with open("samconfig.toml", mode="r") as f:
-                config = toml.load(f)
+            with open("samconfig.toml", encoding="utf-8", mode="r") as samconfig:
+                config = toml.load(samconfig)
                 self.stack_name = config["default"]["global"]["parameters"][
                     "stack_name"
                 ]
@@ -39,7 +43,6 @@ class Config:
                 self.stage = value.replace('"', "")
             elif key == "WorkflowNotificationEmail":
                 self.email = value.replace('"', "")
-            
 
         for step_function in sfn.list_state_machines()["stateMachines"]:
             if step_function["name"] == f"AIF-Partner-to-AWS-Orchestrate-{self.stage}":
@@ -50,10 +53,12 @@ class Config:
 
     @property
     def bucket_name(self) -> str:
+        """Returns the bucket name"""
         return f"ace-partner-integration-{self.spmid}-{self.stage}-us-west-2"
 
     @property
     def api_gateway_url(self) -> str:
+        """Returns the API Gateway URL"""
         if not self._api_gateway_url:
             stack = cloudformation.Stack(self.stack_name)
             outputs = stack.outputs
