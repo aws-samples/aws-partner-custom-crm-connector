@@ -1,17 +1,35 @@
 # AWS Partner Custom CRM Connector [![Integration Test](https://github.com/aws-samples/aws-partner-custom-crm-connector/actions/workflows/pipeline.yml/badge.svg)](https://github.com/aws-samples/aws-partner-custom-crm-connector/actions/workflows/pipeline.yml)
 
-This solution provides an alternative to the official [AWS Partner CRM Connector for Salesforce](https://aws.amazon.com/blogs/apn/accelerate-joint-opportunity-and-lead-sharing-introducing-aws-partner-crm-connector/), simplfiying the AWS ACE CRM Integration for APN partners regardless of the CRM vendor, following a no-code approach.
+## Table of Contents
+- [Introduction](#introduction)
+- [Features](#features)
+- [Architecture](#how-it-works)
+- [How to setup?](#setup)
+- [How to test?](#test)
+- [How to update?](#update)
+- [Troubleshooting](#troubleshooting)
+- [Cost](#costs)
+- [Recent Changes](#changelog)
 
-The following operations are currently supported:
+## Introduction
+
+This solution allows AWS Partners in the APN Customer Engagements (ACE) program to share opportunities from their own CRM with AWS to automate and speed up operations. It is an alternative to the official [AWS Partner CRM Connector for Salesforce](https://aws.amazon.com/blogs/apn/accelerate-joint-opportunity-and-lead-sharing-introducing-aws-partner-crm-connector/) and provides the following benefits:
+- Supports any CRM
+- No custom code required
+- Loosely coupled integration
+
+## Features
+
+The following ACE operations are currently supported:
 
 | Feature                            | Status  |
 | ---------------------------------- | ------- |
-| Send opportunity data to ACE       | **YES** |
-| Send lead data to ACE              | NO      |
-| Retrieve opportunity data from ACE | NO      |
-| Retrieve leads data from ACE       | NO      |
+| Send opportunity data to ACE       | ✅ |
+| Send lead data to ACE              | ❌      |
+| Retrieve opportunity data from ACE | ❌      |
+| Retrieve leads data from ACE       | ❌      |
 
-Architecture Overview
+## How it works
 
 ![image](doc/images/architecture1.png)
 
@@ -24,7 +42,9 @@ The flow for 'Sending opportunity data to ACE' is as follows:
 - Approve Import (Email Notification)
 - Wait for processing to complete (Email Notification)
 
-## Initial setup
+Please refer to the framework [documentation](/blob/main/doc/ARCHITECTURE.md) for an architectural deep-dive.
+
+## Setup
 
 **Note:** ACE Integration operates in **us-west-2** (Oregon) only!
 
@@ -37,24 +57,11 @@ The flow for 'Sending opportunity data to ACE' is as follows:
 7. Create an Amazon Workmail Organization [Link](https://us-west-2.console.aws.amazon.com/workmail/v2/home?region=us-west-2#/organizations/create): e.g. apn-ace-integration-framework-{SPMS_ID}. Make sure to take note of the email domain.
 8. Perform UAT, see below
 
-[Further Resources](https://partnercentral.awspartner.com/partnercentral2/s/resources?keyword=CRM)
+Please refer to the AWS ACE framework [documentation]([/blob/main/doc/ARCHITECTURE.md](https://partnercentral.awspartner.com/partnercentral2/s/resources?keyword=CRM)) for more background information.
 
-## Latest Updates
+## Test
 
-Make sure to subscribe to updates, by clicking on 'Watch'. If you already have deployed an older version of this solution via **AWS Serverless Application Repository**, you can simply update the stack to the latest version as follows:
-
-- Launch an [AWS CloudShell](https://console.aws.amazon.com/cloudshell/home?region=us-west-2) instance
-- Execute the following statements - creates ChangeSet but keeps parameters **unchanged**, except password:
-
-```bash
-wget https://github.com/aws-samples/aws-partner-custom-crm-connector/raw/main/update.sh
-chmod +x update.sh
-./update.sh
-```
-
-## User Acceptance Test (UAT)
-
-To be performed for 'beta' and 'prod' individually!
+**Note:** We recommend to perform a User Acceptance Test (UAT) for 'beta' and 'prod' individually!
 
 1. Generate a sample opportunity export from your own CRM
 2. Download this [Excel Template](https://github.com/aws-samples/aws-partner-custom-crm-connector/raw/main/ace_import_tmpl.xlsx), import your CRM data into tab 'Source' and **map the mandatory fields** as well as **Opportunity Stage** attributes:
@@ -69,6 +76,19 @@ To be performed for 'beta' and 'prod' individually!
 3. Validate tab 'Target'
 4. Send an email to your ACE Integration Endpoint **opportunity@apn-ace-integration-framework-{SPMS_ID}.awsapps.com** and simply attach the filled excel file.
 5. Wait for the approval notification email, hit 'approve' to begin the import. Note: The import will time out after 10 minutes, if approval action is not taken. In this case, simply resend the email.
+
+## Update
+
+Make sure to subscribe to updates, by clicking on 'Watch' in this repo. If you already have deployed an older version of this solution via **AWS Serverless Application Repository**, you can simply update the stack to the latest version as follows:
+
+- Launch an [AWS CloudShell](https://console.aws.amazon.com/cloudshell/home?region=us-west-2) instance
+- Execute the following statements - creates ChangeSet but keeps parameters **unchanged**, except password:
+
+```bash
+wget https://github.com/aws-samples/aws-partner-custom-crm-connector/raw/main/update.sh
+chmod +x update.sh
+./update.sh
+```
 
 ## Troubleshooting
 
@@ -86,7 +106,7 @@ Common Errors:
 | "Project description must have minimum of 50 characters"              | Make sure to provide a longer description      |
 | "User not found for Opportunity Owner email" | You must use a valid APN user email address      |
 
-## Estimated costs
+## Costs
 
 Due to the pure usage of AWS serverless services, the costs should be less than **1$ per month**!
 Especially as there are 4000 state transitions included every month as part of the FREE TIER for AWS Step Functions, corresponding to roughly 400 processed opportunities per month.
@@ -95,8 +115,9 @@ Especially as there are 4000 state transitions included every month as part of t
 
 1.0.0 Initial Release (June 2023)
 
-## Found an issue? Anything to add?
+## Contribute
 
+Found an issue? Anything to add?
 See [CONTRIBUTING](CONTRIBUTING.md) for more information.
 
 ## License
