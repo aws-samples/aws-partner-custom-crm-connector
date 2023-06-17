@@ -60,5 +60,6 @@ jobs:
           S3_BUCKET: ${{ vars.S3_BUCKET }}
           S3_PREFIX: ${{ vars.S3_PREFIX }}
           PARAMETER_OVERRIDES: ${{ vars.PARAMETER_OVERRIDES }}
+          PYTEST_ADDOPTS: ${{ vars.PYTEST_ADDOPTS }}
         run: |
           pytest --junitxml=report.xml 
