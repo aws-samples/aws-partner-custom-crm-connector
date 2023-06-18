@@ -17,6 +17,7 @@ This solution allows AWS Partners in the APN Customer Engagements (ACE) program 
 - Supports any CRM
 - No custom code required
 - Loosely coupled integration
+- Extensible
 
 ## Features
 
@@ -24,7 +25,7 @@ The following ACE operations are currently supported:
 
 | Feature                            | Status  |
 | ---------------------------------- | ------- |
-| Send opportunity data to ACE       | ✅ |
+| Send opportunity data to ACE (Insert/Update)       | ✅ |
 | Send lead data to ACE              | ❌      |
 | Retrieve opportunity data from ACE | ❌      |
 | Retrieve leads data from ACE       | ❌      |
@@ -33,11 +34,11 @@ The following ACE operations are currently supported:
 
 ![image](doc/images/architecture1.png)
 
-The flow for 'Sending opportunity data to ACE' is as follows:
+'Sending opportunity data to ACE' workflow is as follows:
 
-- Partner to generate own CRM Export (Excel/csv)
+- Partner to generate own CRM Export for opportunity data (Excel/csv)
 - Copy data into 'Source' tab of the mapped [Excel Template](https://github.com/aws-samples/aws-partner-custom-crm-connector/raw/main/ace_import_tmpl.xlsx)
-- Validate 'Target' Tab
+- Validate Tab 'Target'
 - Send Email to ACE Integration Endpoint with filled excel file attached
 - Approve Import (Email Notification)
 - Wait for processing to complete (Email Notification)
