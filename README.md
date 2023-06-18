@@ -13,7 +13,7 @@
 
 ## Introduction
 
-This solution allows AWS Partners in the APN Customer Engagements (ACE) program to share opportunities from their own CRM with AWS to automate and speed up operations. It is an alternative to the official [AWS Partner CRM Connector for Salesforce](https://aws.amazon.com/blogs/apn/accelerate-joint-opportunity-and-lead-sharing-introducing-aws-partner-crm-connector/) and provides the following benefits:
+This solution allows AWS Partners in the APN Customer Engagements (ACE) program to share opportunities with AWS from any source CRM to automate and speed up operations. It is an alternative to the official [AWS Partner CRM Connector for Salesforce](https://aws.amazon.com/blogs/apn/accelerate-joint-opportunity-and-lead-sharing-introducing-aws-partner-crm-connector/) and provides the following benefits:
 - Supports any CRM
 - No custom code required
 - Loosely coupled integration
