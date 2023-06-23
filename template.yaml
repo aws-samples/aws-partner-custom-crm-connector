@@ -167,21 +167,11 @@ Resources:
         Variables:
           POWERTOOLS_SERVICE_NAME: OpportunityTransformationFunction
 
-  S3PutObjectFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
-    Properties:
-      Description: Partner to ACE - (6) Trigger ACE Import via S3
-      CodeUri: src/functions/06_s3_put_object
-      Handler: app.lambda_handler
-      Timeout: 10
-      Environment:
-        Variables:
-          POWERTOOLS_SERVICE_NAME: S3PutObjectFunction
   AnalyseResultFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
     Properties:
-      Description: Partner to ACE - (7) Analyse Result of Imports
-      CodeUri: src/functions/07_analyse_results
+      Description: Partner to ACE - (6) Analyse Result of Imports
+      CodeUri: src/functions/06_analyse_results
       Handler: app.lambda_handler
       Timeout: 10
       Environment:
@@ -198,13 +188,10 @@ Resources:
         OpportunityTransformationFunction: !GetAtt OpportunityTransformationFunction.Arn
         AceNotificationSNSTopic: !Ref AceNotificationSNSTopic
         AceApnPartnerBucket: !Sub "ace-apn-${PartnerIdParameter}-${StageParameter}-us-west-2"
-        S3PutObjectFunction: !GetAtt S3PutObjectFunction.Arn
         AcePartnerIamAccessRole: !Sub "arn:aws:iam::${AWS::AccountId}:role/APN-ACE-${PartnerIdParameter}-AccessUser-${StageParameter}"
       Policies: # Find out more about SAM policy templates: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
         - LambdaInvokePolicy:
             FunctionName: !Ref OpportunityTransformationFunction
-        - LambdaInvokePolicy:
-            FunctionName: !Ref S3PutObjectFunction
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt AceNotificationSNSTopic.TopicName
 
@@ -447,7 +434,6 @@ Resources:
               # Dynamic Role based on Resource
               AWS:
                 - !GetAtt AIFPartnerToAWSStateMachineRole.Arn
-                - !GetAtt S3PutObjectFunctionRole.Arn
             Action:
               - "sts:AssumeRole"
       Policies:

@@ -11,6 +11,7 @@
 - [Cost](#costs)
 - [Recent Changes](#changelog)
 
+
 ## Introduction
 
 This solution allows AWS Partners in the APN Customer Engagements (ACE) program to share opportunities with AWS from any source CRM to automate and speed up operations. It is an alternative to the official [AWS Partner CRM Connector for Salesforce](https://aws.amazon.com/blogs/apn/accelerate-joint-opportunity-and-lead-sharing-introducing-aws-partner-crm-connector/) and provides the following benefits:
@@ -114,6 +115,7 @@ Especially as there are 4000 state transitions included every month as part of t
 
 ## Changelog
 
+1.0.1 Optimize StepFunction for S3 PutObject
 1.0.0 Initial Release (June 2023)
 
 ## Contribute
