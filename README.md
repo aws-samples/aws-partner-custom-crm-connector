@@ -1,15 +1,19 @@
 # AWS Partner Custom CRM Connector [![Integration Test](https://github.com/aws-samples/aws-partner-custom-crm-connector/actions/workflows/pipeline.yml/badge.svg)](https://github.com/aws-samples/aws-partner-custom-crm-connector/actions/workflows/pipeline.yml)
 
 ## Table of Contents
-- [Introduction](#introduction)
-- [Features](#features)
-- [Architecture](#how-it-works)
-- [How to setup?](#setup)
-- [How to test?](#test)
-- [How to update?](#update)
-- [Troubleshooting](#troubleshooting)
-- [Cost](#costs)
-- [Recent Changes](#changelog)
+- [AWS Partner Custom CRM Connector ](#aws-partner-custom-crm-connector-)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Features](#features)
+  - [How it works](#how-it-works)
+  - [Setup](#setup)
+  - [Test](#test)
+  - [Update](#update)
+  - [Troubleshooting](#troubleshooting)
+  - [Costs](#costs)
+  - [Changelog](#changelog)
+  - [Contribute](#contribute)
+  - [License](#license)
 
 ## Introduction
 
@@ -114,6 +118,7 @@ Especially as there are 4000 state transitions included every month as part of t
 
 ## Changelog
 
+1.0.1 Optimize StepFunction for S3 PutObject
 1.0.0 Initial Release (June 2023)
 
 ## Contribute
