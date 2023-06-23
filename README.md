@@ -1,19 +1,16 @@
 # AWS Partner Custom CRM Connector [![Integration Test](https://github.com/aws-samples/aws-partner-custom-crm-connector/actions/workflows/pipeline.yml/badge.svg)](https://github.com/aws-samples/aws-partner-custom-crm-connector/actions/workflows/pipeline.yml)
 
 ## Table of Contents
-- [AWS Partner Custom CRM Connector ](#aws-partner-custom-crm-connector-)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
-  - [Features](#features)
-  - [How it works](#how-it-works)
-  - [Setup](#setup)
-  - [Test](#test)
-  - [Update](#update)
-  - [Troubleshooting](#troubleshooting)
-  - [Costs](#costs)
-  - [Changelog](#changelog)
-  - [Contribute](#contribute)
-  - [License](#license)
+- [Introduction](#introduction)
+- [Features](#features)
+- [Architecture](#how-it-works)
+- [How to setup?](#setup)
+- [How to test?](#test)
+- [How to update?](#update)
+- [Troubleshooting](#troubleshooting)
+- [Cost](#costs)
+- [Recent Changes](#changelog)
+
 
 ## Introduction
 
