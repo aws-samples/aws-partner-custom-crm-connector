@@ -43,7 +43,7 @@
           "Next": "SNS Failure Excel"
         }
       ],
-      "TimeoutSeconds": 10,
+      "TimeoutSeconds": 60,
       "Next": "Trigger Import per Object",
       "ResultPath": "$.AttachementContent",
       "ResultSelector": {

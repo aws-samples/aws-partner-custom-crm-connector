@@ -34,7 +34,7 @@ def lambda_handler(event, context):
         delete_object_from_s3(bucket, key)
     return result
 
-
+@tracer.capture_method
 def build_ace_json(lead: dict = None, opportunity: dict = None, name: str = None):
     __doc__ = "Build Skeleton for ACE JSON for one given lead or opportunity"
 
@@ -54,7 +54,7 @@ def build_ace_json(lead: dict = None, opportunity: dict = None, name: str = None
 
     return json.loads(json_event)
 
-
+@tracer.capture_method
 def delete_object_from_s3(s3bucket, s3key):
     s3_client = boto3.client('s3')
 
@@ -67,7 +67,7 @@ def delete_object_from_s3(s3bucket, s3key):
     print(response)
     return response
 
-
+@tracer.capture_method
 def parse_entities(bucket, key) -> list:
     s3_object = s3.Object(bucket, key)
     print("Reading Excel")
