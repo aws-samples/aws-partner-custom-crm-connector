@@ -56,7 +56,7 @@ Content-Transfer-Encoding: base64
 def test_upload_triggers_workflow(email_msg, execution_name):
     trigger = bucket.Object(
         f"{UPLOAD_PATH_EMAIL}/{execution_name}").put(Body=str(email_msg))
-    time.sleep(3)
+    time.sleep(5)
     result = sfn.list_executions(
         stateMachineArn=conf.step_function_orchestration_arn, statusFilter='RUNNING')
 
