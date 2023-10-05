@@ -11,6 +11,8 @@ json="${json//ParameterKey/Name}"
 json="${json//ParameterValue/Value}"
 json="${json//\[ \[/\[}"
 json="${json//\] \]/\]}"
+json=$(echo $json | tr -d "[]")
+json=[$json]
 
 changeARN=$(aws serverlessrepo create-cloud-formation-change-set \
 --application-id arn:aws:serverlessrepo:us-west-2:815116410066:applications/aws-partner-custom-crm-connector \
